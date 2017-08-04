@@ -344,17 +344,17 @@ public final class IntronExonSplitter implements AutoCloseable {
         try (BedParser p = new BedParser(geneBedPath)) {
             p.stream().forEach(x -> {
                 if (stranded) {
-                    genes.insert(x);
-                    geneBodies.insert(x.getBody());
+                    genes.add(x);
+                    geneBodies.add(x.getBody());
                 } else {
-                    genes.insert(new Annotation(x, Strand.BOTH));
-                    geneBodies.insert(new Annotation(x.getBody(), Strand.BOTH));
+                    genes.add(new Annotation(x, Strand.BOTH));
+                    geneBodies.add(new Annotation(x.getBody(), Strand.BOTH));
                 }
             });
         }
 
         genes.stream()
-            .forEach(x -> paddedGenes.insert(padAnnotation(x, exonPadding)));
+            .forEach(x -> paddedGenes.add(padAnnotation(x, exonPadding)));
         
         LOGGER.info("Finished loading gene annotations.");
     }
@@ -366,7 +366,7 @@ public final class IntronExonSplitter implements AutoCloseable {
         LOGGER.info("Creating intron annotations.");
         paddedGenes.stream()
             .flatMap(x -> x.getIntronStream())
-            .forEach(x -> introns.insert(x));
+            .forEach(x -> introns.add(x));
         LOGGER.info("Finished creating introns.");
     }
 
@@ -422,35 +422,35 @@ public final class IntronExonSplitter implements AutoCloseable {
         
         // Can't assign to a gene. Write as unclassified.
         if (!geneBodies.overlaps(alignment)) {
-            unclassifiedWriter.addAlignment(alignment);
+            unclassifiedWriter.writeSamRecord(alignment);
             return;
         }
 
-        Iterator<Annotated> overlappingGenes = paddedGenes.getOverlappers(alignment);
+        Iterator<Annotated> overlappingGenes = paddedGenes.overlappers(alignment);
         while (overlappingGenes.hasNext()) {
             Annotated overlappingGene = overlappingGenes.next();
             if (overlappingGene.contains(alignment)) {
                 if (alignment.isSpliced()) {
-                    exonWriter.addAlignment(alignment);
+                    exonWriter.writeSamRecord(alignment);
                     return;
                 }
                 
                 if (introns.overlaps(alignment)) {
-                    unclassifiedWriter.addAlignment(alignment);
+                    unclassifiedWriter.writeSamRecord(alignment);
                     return;
                 }
                 
-                exonWriter.addAlignment(alignment);
+                exonWriter.writeSamRecord(alignment);
                 return;
             }
         }
 
         if (introns.overlaps(alignment)) {
-            intronWriter.addAlignment(alignment);
+            intronWriter.writeSamRecord(alignment);
             return;
         }
             
-        unclassifiedWriter.addAlignment(alignment);
+        unclassifiedWriter.writeSamRecord(alignment);
     }
     
     /**
